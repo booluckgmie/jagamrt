@@ -2,512 +2,71 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="JAGAMRT - Geofenced Commuter Train Alarm">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="description" content="JAGAMRT - Geofenced commuter train alarm with live disruption status">
     <meta name="theme-color" content="#2563eb">
     <link rel="manifest" href="manifest.json">
-    <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%232563eb' width='192' height='192'/><text x='50%' y='50%' font-size='100' font-weight='bold' text-anchor='middle' dy='.3em' fill='white'>🚆</text></svg>">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%232563eb' width='192' height='192' rx='32'/><text x='50%' y='50%' font-size='100' text-anchor='middle' dy='.35em'>🚆</text></svg>">
     <title>JAGAMRT - Train Alarm</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 16px;
-            color: #1f2937;
-        }
-
-        .container {
-            max-width: 500px;
-            margin: 0 auto;
-        }
-
-        .header {
-            text-align: center;
-            color: white;
-            margin-bottom: 24px;
-            padding-top: 20px;
-        }
-
-        .header h1 {
-            font-size: 32px;
-            margin-bottom: 8px;
-        }
-
-        .header p {
-            font-size: 14px;
-            opacity: 0.9;
-        }
-
-        .card {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 16px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-
-        .card-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        #map {
-            height: 300px;
-            border-radius: 8px;
-            margin-bottom: 16px;
-            border: 2px solid #e5e7eb;
-        }
-
-        .form-group {
-            margin-bottom: 16px;
-        }
-
-        label {
-            display: block;
-            font-weight: 500;
-            margin-bottom: 6px;
-            color: #374151;
-        }
-
-        input, select {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            font-size: 14px;
-            font-family: inherit;
-        }
-
-        input:focus, select:focus {
-            outline: none;
-            border-color: #2563eb;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-        }
-
-        .btn {
-            width: 100%;
-            padding: 12px;
-            border: none;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.2s;
-        }
-
-        .btn-primary {
-            background: #2563eb;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #1d4ed8;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-        }
-
-        .btn-danger {
-            background: #ef4444;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #dc2626;
-        }
-
-        .btn-secondary {
-            background: #6b7280;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #4b5563;
-        }
-
-        .status {
-            padding: 12px;
-            border-radius: 6px;
-            margin-bottom: 16px;
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        .status.active {
-            background: #dcfce7;
-            color: #166534;
-            border-left: 4px solid #22c55e;
-        }
-
-        .status.inactive {
-            background: #fee2e2;
-            color: #991b1b;
-            border-left: 4px solid #ef4444;
-        }
-
-        .status.warning {
-            background: #fef3c7;
-            color: #92400e;
-            border-left: 4px solid #f59e0b;
-        }
-
-        .info-box {
-            background: #f0f9ff;
-            border: 1px solid #bfdbfe;
-            border-radius: 6px;
-            padding: 12px;
-            font-size: 12px;
-            color: #1e40af;
-            line-height: 1.5;
-        }
-
-        .grid-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-        }
-
-        .stat-box {
-            background: #f3f4f6;
-            padding: 12px;
-            border-radius: 6px;
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 20px;
-            font-weight: 700;
-            color: #2563eb;
-            display: block;
-        }
-
-        .stat-label {
-            font-size: 12px;
-            color: #6b7280;
-            margin-top: 4px;
-        }
-
-        .tabs {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 16px;
-        }
-
-        .tab-btn {
-            flex: 1;
-            padding: 10px;
-            border: 2px solid #e5e7eb;
-            background: white;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-
-        .tab-btn.active {
-            border-color: #2563eb;
-            background: #eff6ff;
-            color: #2563eb;
-        }
-
-        .section {
-            display: none;
-        }
-
-        .section.active {
-            display: block;
-        }
-
-        .station-item {
-            background: #f9fafb;
-            padding: 12px;
-            border-radius: 6px;
-            margin-bottom: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .station-name {
-            font-weight: 500;
-        }
-
-        .station-coords {
-            font-size: 12px;
-            color: #6b7280;
-        }
-
-        .btn-small {
-            padding: 6px 12px;
-            font-size: 12px;
-        }
-
-        .alert {
-            padding: 12px;
-            border-radius: 6px;
-            margin-bottom: 16px;
-            font-weight: 500;
-        }
-
-        .alert-success {
-            background: #dcfce7;
-            color: #166534;
-            border-left: 4px solid #22c55e;
-        }
-
-        .alert-error {
-            background: #fee2e2;
-            color: #991b1b;
-            border-left: 4px solid #ef4444;
-        }
-
-        @media (max-width: 600px) {
-            .header h1 {
-                font-size: 24px;
-            }
-
-            #map {
-                height: 250px;
-            }
-
-            .grid-2 {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .pulse {
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% {
-                opacity: 1;
-            }
-            50% {
-                opacity: 0.5;
-            }
-        }
-
-        .loader {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 3px solid #e5e7eb;
-            border-top-color: #2563eb;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* Disruptions tab */
-        .hidden { display: none; }
-        .dr-sub { font-size: 13px; color: #6b7280; margin: 4px 0 10px; }
-        .dr-row { display: grid; grid-template-columns: 120px 1fr 28px; gap: 10px; align-items: center; margin: 8px 0; font-size: 14px; }
-        .dr-row .dr-n { text-align: right; color: #6b7280; font-variant-numeric: tabular-nums; }
-        .dr-row.dr-out { grid-template-columns: 100px 1fr 92px; }
-        .dr-bar { height: 12px; background: #f3f4f6; border-radius: 6px; overflow: hidden; }
-        .dr-bar i { display: block; height: 100%; }
-        .dr-log { border-top: 1px solid #e5e7eb; padding: 12px 0; font-size: 14px; }
-        .dr-log:first-child { border-top: 0; }
-        .dr-title { font-weight: 500; margin-top: 2px; }
-        .dr-note { display: block; font-size: 13px; color: #6b7280; margin-top: 2px; }
-        .dr-tag { font-size: 12px; padding: 1px 8px; border-radius: 999px; color: white; margin-left: 6px; }
-        .dr-chip { display: inline-flex; align-items: center; gap: 6px; width: auto; margin: 0 6px 6px 0; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 999px; font-weight: 400; font-size: 13px; }
-        .dr-chip input { width: auto; }
-        #drActive .status, #drWarn { margin-bottom: 16px; }
-        .od-line { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 4px; color: white; margin-right: 4px; vertical-align: middle; }
-        textarea#drCsv { width: 100%; min-height: 110px; margin-top: 8px; font-family: monospace; font-size: 12px; }
-    </style>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🚆 JAGAMRT</h1>
-            <p>Geofenced Train Station Alarm</p>
-        </div>
+    <header class="topbar">
+        <div class="brand"><b>🚆 JAGAMRT</b><span>Sleep on the train. We'll wake you.</span></div>
+        <button class="pill hidden" id="statusPill" type="button"></button>
+    </header>
 
-        <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab('setup')">Setup</button>
-            <button class="tab-btn" onclick="switchTab('tracking')">Tracking</button>
-            <button class="tab-btn" onclick="switchTab('stations')">Stations</button>
-            <button class="tab-btn" onclick="switchTab('disruptions')">Disruptions</button>
-        </div>
+    <main>
+        <!-- TRIP: pick destination -> check -> start alarm -> live view -->
+        <section id="screen-trip" class="screen active" aria-label="Trip">
+            <div id="tripBody"></div>
+        </section>
 
-        <!-- SETUP TAB -->
-        <div id="setup" class="section active">
-            <div class="card">
-                <div class="card-title">📍 Select Destination</div>
-                
-                <div id="map"></div>
+        <!-- STATIONS: browse every rail station -->
+        <section id="screen-stations" class="screen" aria-label="Stations">
+            <h1 class="h1">Stations</h1>
+            <input type="search" id="stSearch" placeholder="Search stations" autocomplete="off" aria-label="Search stations">
+            <div class="chips" id="stChips" style="margin-top:10px" role="group" aria-label="Filter by line"></div>
+            <div class="card" style="padding:4px 14px"><ul class="list" id="stList"></ul></div>
+            <p class="dr-sub" id="stSource"></p>
+        </section>
 
-                <div class="form-group">
-                    <label>Station Name</label>
-                    <input type="text" id="stationName" placeholder="e.g., KL Sentral, Subang Jaya">
-                </div>
-
-                <div id="drWarn" class="hidden"></div>
-                <div id="odInfo" class="hidden"></div>
-
-                <div class="form-group">
-                    <label>Latitude</label>
-                    <input type="number" id="stationLat" placeholder="3.1390" step="0.0001">
-                </div>
-
-                <div class="form-group">
-                    <label>Longitude</label>
-                    <input type="number" id="stationLng" placeholder="101.6869" step="0.0001">
-                </div>
-
-                <div class="form-group">
-                    <label>Alert Radius (meters)</label>
-                    <input type="number" id="alertRadius" value="500" min="100" max="5000" step="100">
-                    <small style="color: #6b7280; margin-top: 4px; display: block;">You'll be alerted when within this distance</small>
-                </div>
-
-                <div class="grid-2">
-                    <div class="form-group">
-                        <label>Vibration Pattern (ms)</label>
-                        <input type="text" id="vibrationPattern" value="500,200,500" placeholder="500,200,500">
-                    </div>
-                    <div class="form-group">
-                        <label>Alert Sound Volume</label>
-                        <input type="range" id="soundVolume" min="0" max="100" value="80" style="padding: 6px;">
-                    </div>
-                </div>
-
-                <button class="btn btn-primary" onclick="startTracking()">🚀 Start Tracking</button>
-            </div>
-
-            <div class="info-box">
-                💡 <strong>Tip:</strong> Tap on the map to set coordinates, or enter them manually. Enable notifications for best results!
-            </div>
-        </div>
-
-        <!-- TRACKING TAB -->
-        <div id="tracking" class="section">
-            <div class="card">
-                <div class="card-title">🧭 Nearest stations</div>
-                <p class="dr-sub">Find rail stations around you, with today's timetable frequency and any line disruption. Your location stays on your device.</p>
-                <button class="btn btn-secondary" id="odNearBtn" disabled>Find stations near me</button>
-                <div id="odNearOut" style="margin-top: 12px;"></div>
-            </div>
+        <!-- STATUS: is my line OK, and what has gone wrong before -->
+        <section id="screen-status" class="screen" aria-label="Status">
+            <h1 class="h1">Line status</h1>
+            <div id="drActive" style="margin-bottom:14px"></div>
 
             <div class="card">
-                <div class="card-title">📡 Live Tracking</div>
-
-                <div id="trackingStatus" class="status inactive">
-                    <span class="loader"></span> Tracking inactive. Start in Setup tab.
-                </div>
-
-                <div class="grid-2">
-                    <div class="stat-box">
-                        <span class="stat-value" id="distanceDisplay">--</span>
-                        <span class="stat-label">Distance (m)</span>
-                    </div>
-                    <div class="stat-box">
-                        <span class="stat-value" id="accuracyDisplay">--</span>
-                        <span class="stat-label">Accuracy (m)</span>
-                    </div>
-                </div>
-
-                <div style="margin-top: 16px;">
-                    <p style="font-size: 12px; color: #6b7280; margin-bottom: 8px;">Current Location:</p>
-                    <div style="background: #f9fafb; padding: 12px; border-radius: 6px; font-family: monospace; font-size: 12px;">
-                        <div>Lat: <span id="currentLat">--</span></div>
-                        <div>Lng: <span id="currentLng">--</span></div>
-                        <div>Time: <span id="lastUpdate">--</span></div>
-                    </div>
-                </div>
-
-                <button class="btn btn-danger" style="margin-top: 16px;" onclick="stopTracking()">🛑 Stop Tracking</button>
-            </div>
-
-            <div class="info-box">
-                ⚡ <strong>Note:</strong> Keep your browser tab open and screen ON for best performance. Background tracking works on Android with PWA installed.
-            </div>
-        </div>
-
-        <!-- STATIONS TAB -->
-        <div id="stations" class="section">
-            <div class="card">
-                <div class="card-title">🏪 Rail Stations</div>
-
-                <div id="stationsList"></div>
-
-                <button class="btn btn-secondary" onclick="renderStations()" style="margin-top: 16px;">Refresh station list</button>
-            </div>
-
-            <div class="card">
-                <div class="card-title">➕ Add Custom Station</div>
-                <button class="btn btn-primary" onclick="promptAddStation()">Add New Station</button>
-            </div>
-        </div>
-
-        <!-- DISRUPTIONS TAB -->
-        <div id="disruptions" class="section">
-            <div id="drActive"></div>
-
-            <div class="card">
-                <div class="card-title">🚧 Putrajaya Line disruption record</div>
+                <div class="card-title">🚧 Putrajaya Line record</div>
                 <p class="dr-sub" id="drLead"></p>
-                <div class="info-box">
-                    Hand-built from news and Rapid KL notices, not an official incident log. The search centred on Taman Equine, so that area is probably over-represented and other disruptions are missing. Use it to spot patterns worth testing, not to prove them. Realtime train feeds are not yet available from data.gov.my (bus only).
-                </div>
+                <p class="dr-sub" style="margin-top:8px">Hand-built from news and Rapid KL notices, not an official log. Searches centred on Taman Equine, so other disruptions are probably missing. There is no live train feed for the rail lines yet, so delays can only show up once news or Rapid KL report them.</p>
             </div>
 
             <div class="card">
-                <div class="card-title">📍 Where it broke</div>
-                <p class="dr-sub">Records naming each station as the fault point or the edge of the faulty section.</p>
-                <div id="drStations"></div>
-            </div>
-
-            <div class="card">
-                <div class="card-title">🕔 When it started</div>
-                <ul id="drTimes" class="dr-sub" style="padding-left: 18px;"></ul>
-            </div>
-
-            <div class="card">
-                <div class="card-title">🔧 What caused it</div>
-                <p class="dr-sub">As stated at the time. Some power or signalling faults may have had an unreported theft behind them.</p>
-                <div id="drCauses"></div>
-            </div>
-
-            <div class="card">
-                <div class="card-title">📈 Chance of another one</div>
-                <div id="drOutlook"></div>
-            </div>
-
-            <div class="card">
-                <div class="card-title">🚉 Ridership</div>
-                <div id="drRidership"><p class="dr-sub">Loading…</p></div>
+                <details open><summary>📍 Where it breaks</summary>
+                    <p class="dr-sub">Records naming each station as the fault point or the edge of the faulty section.</p>
+                    <div id="drStations"></div>
+                </details>
+                <details><summary>🕔 When it starts</summary><ul id="drTimes" class="dr-sub" style="padding-left:18px"></ul></details>
+                <details><summary>🔧 What caused it</summary>
+                    <p class="dr-sub">As stated at the time. Some power or signalling faults may have had an unreported theft behind them.</p>
+                    <div id="drCauses"></div>
+                </details>
+                <details><summary>📈 Chance of another one</summary><div id="drOutlook"></div></details>
+                <details><summary>🚉 Ridership</summary><div id="drRidership"><p class="dr-sub">Loading…</p></div></details>
             </div>
 
             <div class="card">
                 <div class="card-title">🗂️ Incident log</div>
                 <div id="drLog"></div>
-
-                <details style="margin-top: 12px;">
-                    <summary style="cursor: pointer; font-weight: 600;">Add an incident</summary>
-                    <div class="grid-2" style="margin-top: 12px;">
-                        <div class="form-group"><label>Date</label><input type="date" id="drDate"></div>
-                        <div class="form-group"><label>Start time (optional)</label><input type="time" id="drTime"></div>
+                <details style="margin-top:8px">
+                    <summary>Add an incident</summary>
+                    <div class="grid-2">
+                        <div class="form-group"><label for="drDate">Date</label><input type="date" id="drDate"></div>
+                        <div class="form-group"><label for="drTime">Start time (optional)</label><input type="time" id="drTime"></div>
                     </div>
-                    <div class="form-group">
-                        <label>Cause</label>
+                    <div class="form-group"><label for="drCause">Cause</label>
                         <select id="drCause">
                             <option value="theft">Cable theft</option>
                             <option value="power">Power fault</option>
@@ -517,24 +76,36 @@
                         </select>
                     </div>
                     <div class="form-group"><label>Stations named</label><div id="drStationPick"></div></div>
-                    <div class="form-group"><label>Short note</label><input type="text" id="drNote" maxlength="160" placeholder="What happened, in one line"></div>
-                    <button class="btn btn-primary" id="drAdd">Add to log</button>
-                    <button class="btn btn-secondary" id="drCsvBtn" style="margin-top: 8px;">Show as CSV</button>
-                    <button class="btn btn-secondary" id="drReset" style="margin-top: 8px;">Remove my additions</button>
+                    <div class="form-group"><label for="drNote">Short note</label><input type="text" id="drNote" maxlength="160" placeholder="What happened, in one line"></div>
+                    <div class="stack" style="margin-top:12px">
+                        <button class="btn" id="drAdd" type="button">Add to log</button>
+                        <button class="btn btn-ghost" id="drCsvBtn" type="button">Show as CSV</button>
+                        <button class="btn btn-ghost" id="drReset" type="button">Remove my additions</button>
+                    </div>
                     <textarea id="drCsv" class="hidden" readonly></textarea>
                 </details>
             </div>
+        </section>
+    </main>
+
+    <nav class="tabbar" aria-label="Main">
+        <div class="inner" role="tablist">
+            <button class="tab" role="tab" data-tab="trip" aria-selected="true"><span class="ico">🚆</span>Trip</button>
+            <button class="tab" role="tab" data-tab="stations" aria-selected="false"><span class="ico">🚉</span>Stations</button>
+            <button class="tab" role="tab" data-tab="status" aria-selected="false"><span class="ico">⚠️</span>Status<i class="dot hidden" id="statusDot"></i></button>
         </div>
-    </div>
+    </nav>
+
+    <div id="sheetRoot"></div>
+    <div id="alarm" class="alarm hidden" role="alertdialog" aria-live="assertive" aria-label="Arrival alarm"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="app.js"></script>
     <script src="disruptions.js"></script>
-    <script src="open-data.js"></script>
+    <script src="ridership.js"></script>
+    <script src="app.js"></script>
     <script>
-        // Register Service Worker
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js').catch(err => console.log('SW registration failed:', err));
+            navigator.serviceWorker.register('sw.js').catch(function (err) { console.log('SW registration failed:', err); });
         }
     </script>
 </body>

@@ -1,0 +1,6 @@
+{
+"updated": "2026-10-04",
+"source": "Verified door sides only. Empty until an operator source or on-site check confirms an entry.",
+"format": "entries[\"LINE|STATION NAME|DIR\"] = {\"side\": \"L\"|\"R\"|\"B\", \"note\": \"source\"}. DIR A = toward the last station of the line in stations.json, B = toward the first. Side is as you face the front of the train.",
+"entries": {}
+}

@@ -47,8 +47,8 @@
 
     // Active banner
     $('drActive').innerHTML = ACTIVE
-      ? '<div class="status warning"><strong>⚠️ ' + esc(ACTIVE.line) + ' disrupted</strong> (since ' + fmt(ACTIVE.since) + ')<br>' + esc(ACTIVE.summary) + ' <a href="' + esc(ACTIVE.src) + '" target="_blank" rel="noopener">' + esc(ACTIVE.sn) + '</a></div>'
-      : '';
+      ? '<div class="banner warn"><strong>⚠️ ' + esc(ACTIVE.line) + ' disrupted</strong> (since ' + fmt(ACTIVE.since) + ')<br>' + esc(ACTIVE.summary) + ' <a href="' + esc(ACTIVE.src) + '" target="_blank" rel="noopener">' + esc(ACTIVE.sn) + '</a></div>'
+      : '<div class="banner ok"><strong>✅ No active disruption found</strong><br>Based on the last news scan' + (UPDATED ? ' (' + new Date(UPDATED).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) + ')' : '') + '. This is not a live train feed, so check Rapid KL if in doubt.</div>';
 
     // Station counts
     var cnt = {}; STATIONS.forEach(function (s) { cnt[s] = 0; });
@@ -106,23 +106,15 @@
     })).join('\n');
   }
 
-  // Pre-tracking warning: shown under the station name when the chosen
-  // destination is on a line currently flagged as disrupted.
-  function checkDestination() {
-    var box = $('drWarn'), input = $('stationName');
-    if (!box || !input) return;
-    var name = input.value.trim().toLowerCase();
-    var key = name.length > 2 && STATIONS.filter(function (s) { var l = s.toLowerCase(); return name.indexOf(l) !== -1 || l.indexOf(name) !== -1; })[0];
-    // Full line list (from open data): exact name match only, so partial typing doesn't warn.
-    if (!key) key = LINE_STATIONS.filter(function (s) { return s.toLowerCase() === name; })[0];
-    if (ACTIVE && key) {
-      var near = (ACTIVE.stations || []).some(function (x) { return x.toLowerCase() === key.toLowerCase(); });
-      box.className = 'status warning';
-      box.innerHTML = '⚠️ <strong>' + esc(ACTIVE.line) + ' is disrupted.</strong> ' + (near ? esc(key) + ' is at the fault. ' : '') + esc(ACTIVE.summary) + ' Check the Disruptions tab before you tap in.';
-    } else {
-      box.className = 'hidden';
-      box.innerHTML = '';
-    }
+  // Warning text for a destination, or null when its line is not flagged.
+  // Exact names only (case-insensitive), so partial typing never warns.
+  function warningFor(stationName) {
+    var name = String(stationName || '').trim().toLowerCase();
+    if (!ACTIVE || !name) return null;
+    var key = STATIONS.concat(LINE_STATIONS).filter(function (s) { return s.toLowerCase() === name; })[0];
+    if (!key) return null;
+    var near = (ACTIVE.stations || []).some(function (x) { return x.toLowerCase() === key.toLowerCase(); });
+    return { line: ACTIVE.line, atFault: near, summary: ACTIVE.summary, src: ACTIVE.src, sn: ACTIVE.sn, since: ACTIVE.since };
   }
 
   function init() {
@@ -141,12 +133,7 @@
     };
     $('drCsvBtn').onclick = function () { $('drCsv').classList.toggle('hidden'); };
     $('drReset').onclick = function () { extra = []; try { localStorage.removeItem(KEY); } catch (e) {} render(); };
-    $('stationName').addEventListener('input', checkDestination);
-    // selectStation() in app.js sets the value programmatically
-    var orig = window.selectStation;
-    if (typeof orig === 'function') window.selectStation = function () { orig.apply(this, arguments); checkDestination(); };
     render();
-    checkDestination();
     loadScraped();
   }
 
@@ -162,14 +149,15 @@
         if (cur) { ACTIVE.summary = cur.note; ACTIVE.stations = cur.stations; ACTIVE.src = cur.src; ACTIVE.sn = cur.sn; }
       }
       render();
-      checkDestination();
     });
   }
 
   window.JagaDisruption = {
     active: function () { return ACTIVE; },
     incidents: function () { return all(); },
-    setLineStations: function (line, names) { if (/^PYL$/.test(line)) { LINE_STATIONS = names || []; checkDestination(); } }
+    warningFor: warningFor,
+    updated: function () { return UPDATED; },
+    setLineStations: function (line, names) { if (/^PYL$/.test(line)) { LINE_STATIONS = names || []; } }
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();

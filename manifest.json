@@ -1,7 +1,7 @@
 {
   "name": "JAGAMRT - Train Station Alarm",
   "short_name": "JAGAMRT",
-  "description": "Geofenced alarm to wake you at your train station with door indicators",
+  "description": "Geofenced alarm that wakes you before your train station, with line status and door-side info",
   "start_url": "/index.html",
   "scope": "/",
   "display": "standalone",
