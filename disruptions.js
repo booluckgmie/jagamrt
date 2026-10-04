@@ -9,7 +9,7 @@
     unknown: { n: 'Not stated', c: '#7c8794' }
   };
   var STATIONS = ['Kuchai', 'Serdang Jaya', 'UPM', 'Taman Equine', 'Putra Permai', '16 Sierra', 'Cyberjaya Utara', 'Cyberjaya City Centre', 'Putrajaya Sentral'];
-  var BASE = [
+  var CURATED = [
     { id: 'a1', date: '2025-07-29', time: '05:42', cause: 'debris', stations: ['UPM', 'Taman Equine'], title: 'Stalled train, debris on track', note: 'Train stalled between UPM and Taman Equine. Kwasa Damansara trains ended at UPM; shuttle trains and feeder buses ran.', src: 'https://www.scoop.my/news/265937/putrajaya-mrt-line-faces-delays-due-to-debris-on-track-blocking-movement/', sn: 'Scoop' },
     { id: 'a2', date: '2025-09-23', time: '05:54', cause: 'power', stations: ['Taman Equine', '16 Sierra'], title: 'Power fault, six stations closed', note: 'Power loss between Taman Equine and 16 Sierra hit lighting, escalators, lifts and gates. Six stations from Taman Equine to Putrajaya Sentral closed and reopened at 6am the next day.', src: 'https://api.nst.com.my/news/nation/2025/09/1279945/six-mrt-putrajaya-line-stations-resume-operations-after-power', sn: 'NST' },
     { id: 'a3', date: '2025-10-25', time: '06:21', cause: 'theft', stations: ['Kuchai'], title: 'Fibre optic cable theft, signalling down', note: 'Whole line ran manually at 20 to 30 minute gaps. First alert 6:21am, theft named as the cause at 1:36pm. Police found no CCTV at the site. Repairs ran into 26 Oct.', src: 'https://www.malaymail.com/news/malaysia/2025/10/25/mrt-putrajaya-disruption-police-say-probing-cable-theft-trespass-reported-and-cable-pile-found/195898', sn: 'Malay Mail' },
@@ -19,17 +19,12 @@
     { id: 'a7', date: '2026-10-04', time: null, morning: true, cause: 'theft', stations: ['Taman Equine'], title: 'Cable theft, power lost', note: 'Theft near Taman Equine cut power. Kwasa Damansara trains ended at UPM; shuttle trains ran 16 Sierra to Putrajaya Sentral.', src: 'https://www.freemalaysiatoday.com/category/nation/2026/10/04/cable-theft-disrupts-services-on-putrajaya-mrt-line', sn: 'FMT' }
   ];
 
-  // Active disruption shown as a banner and used for the pre-tracking warning.
-  // Update by hand (or from the future alert pipeline) when a live incident is flagged.
-  var ACTIVE = {
-    line: 'Putrajaya Line',
-    since: '2026-10-04',
-    summary: 'Cable theft near Taman Equine cut power. Kwasa Damansara trains end at UPM; shuttle trains run 16 Sierra to Putrajaya Sentral.',
-    stations: ['UPM', 'Taman Equine', 'Putra Permai', '16 Sierra', 'Cyberjaya Utara', 'Cyberjaya City Centre', 'Putrajaya Sentral'],
-    src: BASE[BASE.length - 1].src,
-    sn: BASE[BASE.length - 1].sn
-  };
+  // Active disruption comes from data/active.json (written by scripts/scrape.mjs).
+  var ACTIVE = null;
+  var UPDATED = null;
 
+  var BASE = CURATED;
+  var AUTO = [];
   var KEY = 'pjl_extra_v1';
   var extra = [];
   try { var s = localStorage.getItem(KEY); if (s) extra = JSON.parse(s) || []; } catch (e) { extra = []; }
@@ -39,7 +34,11 @@
   function utc(d) { return new Date(d + 'T00:00:00Z'); }
   function fmt(d) { return utc(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }); }
   function days(a, b) { return Math.round((utc(b) - utc(a)) / 86400000); }
-  function all() { return BASE.concat(extra).sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; }); }
+  // Scraped records are dropped when a hand-curated one sits within a day of them.
+  function autoNew() {
+    return AUTO.filter(function (a) { return !CURATED.some(function (c) { return Math.abs(days(c.date, a.date)) <= 1; }); });
+  }
+  function all() { return BASE.concat(autoNew(), extra).sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; }); }
   function bar(pct, color) { return '<span class="dr-bar"><i style="width:' + pct + '%;background:' + color + '"></i></span>'; }
 
   function render() {
@@ -55,7 +54,7 @@
     D.forEach(function (e) { (e.stations || []).forEach(function (s) { if (cnt[s] != null) cnt[s]++; }); });
     var max = Math.max.apply(null, STATIONS.map(function (s) { return cnt[s]; })) || 1;
     var top = STATIONS.slice().sort(function (a, b) { return cnt[b] - cnt[a]; })[0];
-    $('drLead').textContent = N + ' disruptions logged from ' + fmt(D[0].date) + ' to ' + fmt(D[N - 1].date) + '. ' + top + ' is named in ' + cnt[top] + ' of them.';
+    $('drLead').textContent = N + ' disruptions logged from ' + fmt(D[0].date) + ' to ' + fmt(D[N - 1].date) + '. ' + top + ' is named in ' + cnt[top] + ' of them.' + (UPDATED ? ' Auto-scan last ran ' + new Date(UPDATED).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) + '.' : '');
     $('drStations').innerHTML = STATIONS.map(function (s) {
       return '<div class="dr-row"><span>' + esc(s) + '</span>' + bar(cnt[s] / max * 100, '#c8421e') + '<span class="dr-n">' + cnt[s] + '</span></div>';
     }).join('');
@@ -97,7 +96,7 @@
       var when = e.time ? ' at ' + e.time : (e.morning ? ' in the morning' : '');
       return '<div class="dr-log"><div><strong>' + fmt(e.date) + esc(when) + '</strong> <span class="dr-tag" style="background:' + c.c + '">' + c.n + '</span></div>' +
         '<div class="dr-title">' + esc(e.title) + '</div><div class="dr-note">' + esc(e.note) + '</div>' +
-        (e.src ? '<a class="dr-note" href="' + esc(e.src) + '" target="_blank" rel="noopener">' + esc(e.sn || 'Source') + '</a>' : '<div class="dr-note">Added by you</div>') + '</div>';
+        (e.src ? '<a class="dr-note" href="' + esc(e.src) + '" target="_blank" rel="noopener">' + esc(e.sn || 'Source') + '</a>' + (e.auto ? ' <span class="dr-note" style="display:inline">· auto-detected</span>' : '') : '<div class="dr-note">Added by you</div>') + '</div>';
     }).join('');
 
     $('drCsv').value = ['date,time,cause,stations,title'].concat(D.map(function (e) {
@@ -111,10 +110,11 @@
     var box = $('drWarn'), input = $('stationName');
     if (!box || !input) return;
     var name = input.value.trim().toLowerCase();
-    var hit = ACTIVE && name && ACTIVE.stations.filter(function (s) { return name.indexOf(s.toLowerCase()) !== -1 || s.toLowerCase().indexOf(name) !== -1 && name.length > 2; })[0];
-    if (hit) {
+    var key = name.length > 2 && STATIONS.filter(function (s) { var l = s.toLowerCase(); return name.indexOf(l) !== -1 || l.indexOf(name) !== -1; })[0];
+    if (ACTIVE && key) {
+      var near = (ACTIVE.stations || []).indexOf(key) !== -1;
       box.className = 'status warning';
-      box.innerHTML = '⚠️ <strong>' + esc(ACTIVE.line) + ' is disrupted.</strong> ' + esc(hit) + ' is in the affected section. ' + esc(ACTIVE.summary) + ' Check the Disruptions tab before you tap in.';
+      box.innerHTML = '⚠️ <strong>' + esc(ACTIVE.line) + ' is disrupted.</strong> ' + (near ? esc(key) + ' is at the fault. ' : '') + esc(ACTIVE.summary) + ' Check the Disruptions tab before you tap in.';
     } else {
       box.className = 'hidden';
       box.innerHTML = '';
@@ -143,6 +143,23 @@
     if (typeof orig === 'function') window.selectStation = function () { orig.apply(this, arguments); checkDestination(); };
     render();
     checkDestination();
+    loadScraped();
+  }
+
+  // Scraper output is optional: the page works from CURATED alone if these fail.
+  function loadScraped() {
+    var get = function (u) { return fetch(u, { cache: 'no-cache' }).then(function (r) { if (!r.ok) throw 0; return r.json(); }); };
+    Promise.all([get('data/incidents.json').catch(function () { return null; }), get('data/active.json').catch(function () { return null; })]).then(function (r) {
+      if (r[0]) { AUTO = (r[0].incidents || []).filter(function (i) { return i && i.date && i.cause; }); UPDATED = r[0].updated || null; }
+      if (r[1] && r[1].active) {
+        ACTIVE = r[1].active;
+        // Prefer the hand-written summary when a curated record covers the same day.
+        var cur = CURATED.filter(function (c) { return c.date === ACTIVE.since; })[0];
+        if (cur) { ACTIVE.summary = cur.note; ACTIVE.stations = cur.stations; ACTIVE.src = cur.src; ACTIVE.sn = cur.sn; }
+      }
+      render();
+      checkDestination();
+    });
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
