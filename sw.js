@@ -1,8 +1,9 @@
-const CACHE_NAME = 'jagamrt-v1';
+const CACHE_NAME = 'jagamrt-v2';
 const urlsToCache = [
   '/',
   '/index.html',
   '/app.js',
+  '/disruptions.js',
   '/manifest.json'
 ];
 
@@ -31,6 +32,15 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  // Scraper output must be fresh: network first, cache only as offline fallback.
+  if (new URL(event.request.url).pathname.startsWith('/data/')) {
+    event.respondWith(fetch(event.request).then((res) => {
+      const copy = res.clone();
+      caches.open(CACHE_NAME).then((c) => c.put(event.request, copy));
+      return res;
+    }).catch(() => caches.match(event.request)));
+    return;
+  }
   event.respondWith(
     caches.match(event.request).then((response) => {
       if (response) {

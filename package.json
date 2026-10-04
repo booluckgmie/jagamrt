@@ -4,6 +4,7 @@
   "description": "JAGAMRT - Geofenced Train Station Alarm PWA",
   "main": "index.html",
   "scripts": {
+    "scrape": "node scripts/scrape.mjs",
     "start": "python3 -m http.server 8000",
     "build": "echo 'PWA app ready'"
   },
