@@ -20,16 +20,19 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Fetch open data (stations, headways, ridership)
+        continue-on-error: true
+        run: node scripts/build-open-data.mjs
       - name: Run scraper
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: node scripts/scrape.mjs
       - name: Commit changes
         run: |
-          # `updated` changes every run; only commit when incidents or the active flag changed.
-          git diff --quiet -I'"updated"' -- data && exit 0
+          # `updated` changes every run; only commit when real content changed (new files count).
+          git add -A data
+          git diff --cached --quiet -I'"updated"' -- data && exit 0
           git config user.name "jagamrt-scraper"
           git config user.email "actions@users.noreply.github.com"
-          git add data
           git commit -m "chore(data): update disruption record"
           git push
