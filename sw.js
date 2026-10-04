@@ -1,9 +1,10 @@
-const CACHE_NAME = 'jagamrt-v2';
+const CACHE_NAME = 'jagamrt-v3';
 const urlsToCache = [
   '/',
   '/index.html',
   '/app.js',
   '/disruptions.js',
+  '/open-data.js',
   '/manifest.json'
 ];
 

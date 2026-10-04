@@ -5,6 +5,7 @@
   "main": "index.html",
   "scripts": {
     "scrape": "node scripts/scrape.mjs",
+    "open-data": "node scripts/build-open-data.mjs",
     "start": "python3 -m http.server 8000",
     "build": "echo 'PWA app ready'"
   },

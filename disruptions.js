@@ -25,6 +25,7 @@
 
   var BASE = CURATED;
   var AUTO = [];
+  var LINE_STATIONS = [];
   var KEY = 'pjl_extra_v1';
   var extra = [];
   try { var s = localStorage.getItem(KEY); if (s) extra = JSON.parse(s) || []; } catch (e) { extra = []; }
@@ -99,6 +100,7 @@
         (e.src ? '<a class="dr-note" href="' + esc(e.src) + '" target="_blank" rel="noopener">' + esc(e.sn || 'Source') + '</a>' + (e.auto ? ' <span class="dr-note" style="display:inline">· auto-detected</span>' : '') : '<div class="dr-note">Added by you</div>') + '</div>';
     }).join('');
 
+    document.dispatchEvent(new Event('jagamrt:incidents'));
     $('drCsv').value = ['date,time,cause,stations,title'].concat(D.map(function (e) {
       return [e.date, e.time || '', e.cause, '"' + (e.stations || []).join('; ') + '"', '"' + String(e.title).replace(/"/g, '""') + '"'].join(',');
     })).join('\n');
@@ -111,8 +113,10 @@
     if (!box || !input) return;
     var name = input.value.trim().toLowerCase();
     var key = name.length > 2 && STATIONS.filter(function (s) { var l = s.toLowerCase(); return name.indexOf(l) !== -1 || l.indexOf(name) !== -1; })[0];
+    // Full line list (from open data): exact name match only, so partial typing doesn't warn.
+    if (!key) key = LINE_STATIONS.filter(function (s) { return s.toLowerCase() === name; })[0];
     if (ACTIVE && key) {
-      var near = (ACTIVE.stations || []).indexOf(key) !== -1;
+      var near = (ACTIVE.stations || []).some(function (x) { return x.toLowerCase() === key.toLowerCase(); });
       box.className = 'status warning';
       box.innerHTML = '⚠️ <strong>' + esc(ACTIVE.line) + ' is disrupted.</strong> ' + (near ? esc(key) + ' is at the fault. ' : '') + esc(ACTIVE.summary) + ' Check the Disruptions tab before you tap in.';
     } else {
@@ -161,6 +165,12 @@
       checkDestination();
     });
   }
+
+  window.JagaDisruption = {
+    active: function () { return ACTIVE; },
+    incidents: function () { return all(); },
+    setLineStations: function (line, names) { if (/^PYL$/.test(line)) { LINE_STATIONS = names || []; checkDestination(); } }
+  };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

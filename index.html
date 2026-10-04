@@ -329,6 +329,7 @@
         .dr-chip { display: inline-flex; align-items: center; gap: 6px; width: auto; margin: 0 6px 6px 0; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 999px; font-weight: 400; font-size: 13px; }
         .dr-chip input { width: auto; }
         #drActive .status, #drWarn { margin-bottom: 16px; }
+        .od-line { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 4px; color: white; margin-right: 4px; vertical-align: middle; }
         textarea#drCsv { width: 100%; min-height: 110px; margin-top: 8px; font-family: monospace; font-size: 12px; }
     </style>
 </head>
@@ -359,6 +360,7 @@
                 </div>
 
                 <div id="drWarn" class="hidden"></div>
+                <div id="odInfo" class="hidden"></div>
 
                 <div class="form-group">
                     <label>Latitude</label>
@@ -398,6 +400,13 @@
         <!-- TRACKING TAB -->
         <div id="tracking" class="section">
             <div class="card">
+                <div class="card-title">🧭 Nearest stations</div>
+                <p class="dr-sub">Find rail stations around you, with today's timetable frequency and any line disruption. Your location stays on your device.</p>
+                <button class="btn btn-secondary" id="odNearBtn" disabled>Find stations near me</button>
+                <div id="odNearOut" style="margin-top: 12px;"></div>
+            </div>
+
+            <div class="card">
                 <div class="card-title">📡 Live Tracking</div>
 
                 <div id="trackingStatus" class="status inactive">
@@ -435,11 +444,11 @@
         <!-- STATIONS TAB -->
         <div id="stations" class="section">
             <div class="card">
-                <div class="card-title">🏪 Popular Stations</div>
+                <div class="card-title">🏪 Rail Stations</div>
 
                 <div id="stationsList"></div>
 
-                <button class="btn btn-secondary" onclick="loadDefaultStations()" style="margin-top: 16px;">Load Malaysian Stations</button>
+                <button class="btn btn-secondary" onclick="renderStations()" style="margin-top: 16px;">Refresh station list</button>
             </div>
 
             <div class="card">
@@ -483,6 +492,11 @@
             </div>
 
             <div class="card">
+                <div class="card-title">🚉 Ridership</div>
+                <div id="drRidership"><p class="dr-sub">Loading…</p></div>
+            </div>
+
+            <div class="card">
                 <div class="card-title">🗂️ Incident log</div>
                 <div id="drLog"></div>
 
@@ -516,6 +530,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="app.js"></script>
     <script src="disruptions.js"></script>
+    <script src="open-data.js"></script>
     <script>
         // Register Service Worker
         if ('serviceWorker' in navigator) {
