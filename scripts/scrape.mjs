@@ -26,7 +26,8 @@ const MIN_DATE = process.env.MIN_DATE || '2025-07-01';
 const STRONG_RE = /disrupt|gangguan|terjejas|stalled|breakdown|shuttle|turn(ed)?\s*back/i;
 // Court, arrest and policy follow-ups are not service disruptions.
 const FOLLOWUP_RE = /diberkas|ditahan|suspek|arrest|remand|charged|court|mahkamah|dituduh|jailed|penjara/i;
-const RESOLVED_RE = /back to normal|resum(e|ed|es)|restored|pulih|beroperasi seperti biasa|normal service/i;
+// "pulih" alone also means "being repaired" (kerja baik pulih), so only match completed-recovery phrasing.
+const RESOLVED_RE = /back to normal|normal (service|operations?)|(service|services|operations?|trains?)\s+(has|have|had)?\s*resum(e|ed|es)|resum(e|ed|es)\s+(normal|operations?|service)|(power|service)\s+(has been\s+)?restored|kembali (pulih|normal|beroperasi)|telah pulih|pulih sepenuhnya|beroperasi seperti biasa|beroperasi semula/i;
 
 const args = process.argv.slice(2);
 const DRY = args.includes('--dry');
