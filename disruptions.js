@@ -1,0 +1,149 @@
+// Putrajaya Line disruption record + pre-tracking warning.
+// Hand-built from news and Rapid KL notices; not an official incident log.
+(function () {
+  var CAUSES = {
+    theft: { n: 'Cable theft', c: '#c8421e' },
+    power: { n: 'Power fault', c: '#1f5fad' },
+    signal: { n: 'Signalling fault', c: '#7a4fb5' },
+    debris: { n: 'Track debris', c: '#2e8b6a' },
+    unknown: { n: 'Not stated', c: '#7c8794' }
+  };
+  var STATIONS = ['Kuchai', 'Serdang Jaya', 'UPM', 'Taman Equine', 'Putra Permai', '16 Sierra', 'Cyberjaya Utara', 'Cyberjaya City Centre', 'Putrajaya Sentral'];
+  var BASE = [
+    { id: 'a1', date: '2025-07-29', time: '05:42', cause: 'debris', stations: ['UPM', 'Taman Equine'], title: 'Stalled train, debris on track', note: 'Train stalled between UPM and Taman Equine. Kwasa Damansara trains ended at UPM; shuttle trains and feeder buses ran.', src: 'https://www.scoop.my/news/265937/putrajaya-mrt-line-faces-delays-due-to-debris-on-track-blocking-movement/', sn: 'Scoop' },
+    { id: 'a2', date: '2025-09-23', time: '05:54', cause: 'power', stations: ['Taman Equine', '16 Sierra'], title: 'Power fault, six stations closed', note: 'Power loss between Taman Equine and 16 Sierra hit lighting, escalators, lifts and gates. Six stations from Taman Equine to Putrajaya Sentral closed and reopened at 6am the next day.', src: 'https://api.nst.com.my/news/nation/2025/09/1279945/six-mrt-putrajaya-line-stations-resume-operations-after-power', sn: 'NST' },
+    { id: 'a3', date: '2025-10-25', time: '06:21', cause: 'theft', stations: ['Kuchai'], title: 'Fibre optic cable theft, signalling down', note: 'Whole line ran manually at 20 to 30 minute gaps. First alert 6:21am, theft named as the cause at 1:36pm. Police found no CCTV at the site. Repairs ran into 26 Oct.', src: 'https://www.malaymail.com/news/malaysia/2025/10/25/mrt-putrajaya-disruption-police-say-probing-cable-theft-trespass-reported-and-cable-pile-found/195898', sn: 'Malay Mail' },
+    { id: 'a4', date: '2025-12-16', time: null, cause: 'signal', stations: ['UPM', 'Taman Equine'], title: 'Signalling fault', note: 'Signalling disruption between UPM and Taman Equine. Trains turned back at UPM with shuttles beyond.', src: 'https://myrapid.com.my/%F0%9F%93%A2kemas-kini-laluan-mrt-putrajaya-mrt-putrajaya-line-update/', sn: 'MyRapid' },
+    { id: 'a5', date: '2026-04-06', time: null, cause: 'unknown', stations: ['UPM', 'Taman Equine'], title: 'Manual driving, cause not stated', note: 'Trains driven manually between UPM and Taman Equine during repairs. Update posted at 11:26am.', src: 'https://paultan.org/2026/04/06/mrt-putrajaya-line-facing-delays-trains-from-kwasa-turning-back-at-upm-shuttle-trains-buses-deployed/', sn: 'paultan.org' },
+    { id: 'a6', date: '2026-08-12', time: null, morning: true, cause: 'power', stations: ['Taman Equine', 'Putrajaya Sentral'], title: 'Power outage, no trains past Taman Equine', note: 'No trains between Taman Equine and Putrajaya Sentral. Normal service returned at 4:29pm.', src: 'https://paultan.org/2026/08/12/mrt-putrajaya-line-back-to-normal-at-4-29-pm-power-restored-free-shuttle-buses-continue-to-run-till-10pm/', sn: 'paultan.org' },
+    { id: 'a7', date: '2026-10-04', time: null, morning: true, cause: 'theft', stations: ['Taman Equine'], title: 'Cable theft, power lost', note: 'Theft near Taman Equine cut power. Kwasa Damansara trains ended at UPM; shuttle trains ran 16 Sierra to Putrajaya Sentral.', src: 'https://www.freemalaysiatoday.com/category/nation/2026/10/04/cable-theft-disrupts-services-on-putrajaya-mrt-line', sn: 'FMT' }
+  ];
+
+  // Active disruption shown as a banner and used for the pre-tracking warning.
+  // Update by hand (or from the future alert pipeline) when a live incident is flagged.
+  var ACTIVE = {
+    line: 'Putrajaya Line',
+    since: '2026-10-04',
+    summary: 'Cable theft near Taman Equine cut power. Kwasa Damansara trains end at UPM; shuttle trains run 16 Sierra to Putrajaya Sentral.',
+    stations: ['UPM', 'Taman Equine', 'Putra Permai', '16 Sierra', 'Cyberjaya Utara', 'Cyberjaya City Centre', 'Putrajaya Sentral'],
+    src: BASE[BASE.length - 1].src,
+    sn: BASE[BASE.length - 1].sn
+  };
+
+  var KEY = 'pjl_extra_v1';
+  var extra = [];
+  try { var s = localStorage.getItem(KEY); if (s) extra = JSON.parse(s) || []; } catch (e) { extra = []; }
+
+  function $(id) { return document.getElementById(id); }
+  function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function utc(d) { return new Date(d + 'T00:00:00Z'); }
+  function fmt(d) { return utc(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }); }
+  function days(a, b) { return Math.round((utc(b) - utc(a)) / 86400000); }
+  function all() { return BASE.concat(extra).sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; }); }
+  function bar(pct, color) { return '<span class="dr-bar"><i style="width:' + pct + '%;background:' + color + '"></i></span>'; }
+
+  function render() {
+    var D = all(), N = D.length;
+
+    // Active banner
+    $('drActive').innerHTML = ACTIVE
+      ? '<div class="status warning"><strong>⚠️ ' + esc(ACTIVE.line) + ' disrupted</strong> (since ' + fmt(ACTIVE.since) + ')<br>' + esc(ACTIVE.summary) + ' <a href="' + esc(ACTIVE.src) + '" target="_blank" rel="noopener">' + esc(ACTIVE.sn) + '</a></div>'
+      : '';
+
+    // Station counts
+    var cnt = {}; STATIONS.forEach(function (s) { cnt[s] = 0; });
+    D.forEach(function (e) { (e.stations || []).forEach(function (s) { if (cnt[s] != null) cnt[s]++; }); });
+    var max = Math.max.apply(null, STATIONS.map(function (s) { return cnt[s]; })) || 1;
+    var top = STATIONS.slice().sort(function (a, b) { return cnt[b] - cnt[a]; })[0];
+    $('drLead').textContent = N + ' disruptions logged from ' + fmt(D[0].date) + ' to ' + fmt(D[N - 1].date) + '. ' + top + ' is named in ' + cnt[top] + ' of them.';
+    $('drStations').innerHTML = STATIONS.map(function (s) {
+      return '<div class="dr-row"><span>' + esc(s) + '</span>' + bar(cnt[s] / max * 100, '#c8421e') + '<span class="dr-n">' + cnt[s] + '</span></div>';
+    }).join('');
+
+    // Start times
+    var times = D.filter(function (e) { return e.time; }).map(function (e) { return e.time; }).sort();
+    var morning = D.filter(function (e) { return !e.time && e.morning; }).length;
+    var f = '';
+    if (times.length) f += '<li>' + times.length + ' records have a start time, all between ' + times[0] + ' and ' + times[times.length - 1] + ', around first service.</li>';
+    if (morning) f += '<li>' + morning + ' more were reported only as "this morning".</li>';
+    $('drTimes').innerHTML = f;
+
+    // Causes
+    var cc = {}; Object.keys(CAUSES).forEach(function (k) { cc[k] = 0; });
+    D.forEach(function (e) { cc[e.cause] = (cc[e.cause] || 0) + 1; });
+    var cm = Math.max.apply(null, Object.keys(cc).map(function (k) { return cc[k]; })) || 1;
+    $('drCauses').innerHTML = Object.keys(CAUSES).filter(function (k) { return cc[k] > 0; }).sort(function (a, b) { return cc[b] - cc[a]; }).map(function (k) {
+      return '<div class="dr-row"><span>' + CAUSES[k].n + '</span>' + bar(cc[k] / cm * 100, CAUSES[k].c) + '<span class="dr-n">' + cc[k] + '</span></div>';
+    }).join('');
+
+    // Gaps and base-rate outlook
+    var gaps = []; for (var i = 1; i < N; i++) gaps.push(days(D[i - 1].date, D[i].date));
+    if (gaps.length < 3) {
+      $('drOutlook').innerHTML = '<p class="dr-sub">Add at least four incidents to estimate this.</p>';
+    } else {
+      var mean = gaps.reduce(function (a, b) { return a + b; }, 0) / gaps.length;
+      var mn = Math.min.apply(null, gaps), mx = Math.max.apply(null, gaps);
+      var p = function (hz, g) { return 1 - Math.exp(-hz / g); };
+      $('drOutlook').innerHTML =
+        '<p class="dr-sub">Gaps between incidents: ' + gaps.join(', ') + ' days (average ' + Math.round(mean) + '). A plain base rate that treats incidents as random and independent; the record is incomplete, so the real chance is likely higher.</p>' +
+        [7, 30, 60, 90].map(function (hz) {
+          return '<div class="dr-row dr-out"><span>Next ' + hz + ' days</span>' + bar(p(hz, mean) * 100, '#c8421e') + '<span class="dr-n">' + Math.round(p(hz, mean) * 100) + '% <small>(' + Math.round(p(hz, mx) * 100) + '–' + Math.round(p(hz, mn) * 100) + ')</small></span></div>';
+        }).join('');
+    }
+
+    // Log
+    $('drLog').innerHTML = D.slice().reverse().map(function (e) {
+      var c = CAUSES[e.cause] || CAUSES.unknown;
+      var when = e.time ? ' at ' + e.time : (e.morning ? ' in the morning' : '');
+      return '<div class="dr-log"><div><strong>' + fmt(e.date) + esc(when) + '</strong> <span class="dr-tag" style="background:' + c.c + '">' + c.n + '</span></div>' +
+        '<div class="dr-title">' + esc(e.title) + '</div><div class="dr-note">' + esc(e.note) + '</div>' +
+        (e.src ? '<a class="dr-note" href="' + esc(e.src) + '" target="_blank" rel="noopener">' + esc(e.sn || 'Source') + '</a>' : '<div class="dr-note">Added by you</div>') + '</div>';
+    }).join('');
+
+    $('drCsv').value = ['date,time,cause,stations,title'].concat(D.map(function (e) {
+      return [e.date, e.time || '', e.cause, '"' + (e.stations || []).join('; ') + '"', '"' + String(e.title).replace(/"/g, '""') + '"'].join(',');
+    })).join('\n');
+  }
+
+  // Pre-tracking warning: shown under the station name when the chosen
+  // destination is on a line currently flagged as disrupted.
+  function checkDestination() {
+    var box = $('drWarn'), input = $('stationName');
+    if (!box || !input) return;
+    var name = input.value.trim().toLowerCase();
+    var hit = ACTIVE && name && ACTIVE.stations.filter(function (s) { return name.indexOf(s.toLowerCase()) !== -1 || s.toLowerCase().indexOf(name) !== -1 && name.length > 2; })[0];
+    if (hit) {
+      box.className = 'status warning';
+      box.innerHTML = '⚠️ <strong>' + esc(ACTIVE.line) + ' is disrupted.</strong> ' + esc(hit) + ' is in the affected section. ' + esc(ACTIVE.summary) + ' Check the Disruptions tab before you tap in.';
+    } else {
+      box.className = 'hidden';
+      box.innerHTML = '';
+    }
+  }
+
+  function init() {
+    // station form
+    $('drStationPick').innerHTML = STATIONS.map(function (s) { return '<label class="dr-chip"><input type="checkbox" value="' + esc(s) + '"> ' + esc(s) + '</label>'; }).join('');
+    $('drDate').value = new Date().toISOString().slice(0, 10);
+    $('drAdd').onclick = function () {
+      var d = $('drDate').value; if (!d) { $('drDate').focus(); return; }
+      var st = [].slice.call(document.querySelectorAll('#drStationPick input:checked')).map(function (x) { return x.value; });
+      var cause = $('drCause').value;
+      extra.push({ id: 'x' + Date.now(), date: d, time: $('drTime').value || null, cause: cause, stations: st, title: CAUSES[cause].n + (st.length ? ' near ' + st[0] : ''), note: $('drNote').value.trim() || 'Added manually.' });
+      try { localStorage.setItem(KEY, JSON.stringify(extra)); } catch (e) {}
+      $('drNote').value = '';
+      [].forEach.call(document.querySelectorAll('#drStationPick input'), function (x) { x.checked = false; });
+      render();
+    };
+    $('drCsvBtn').onclick = function () { $('drCsv').classList.toggle('hidden'); };
+    $('drReset').onclick = function () { extra = []; try { localStorage.removeItem(KEY); } catch (e) {} render(); };
+    $('stationName').addEventListener('input', checkDestination);
+    // selectStation() in app.js sets the value programmatically
+    var orig = window.selectStation;
+    if (typeof orig === 'function') window.selectStation = function () { orig.apply(this, arguments); checkDestination(); };
+    render();
+    checkDestination();
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
