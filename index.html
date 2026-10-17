@@ -85,6 +85,11 @@
                     <textarea id="drCsv" class="hidden" readonly></textarea>
                 </details>
             </div>
+
+            <div class="card">
+                <div class="card-title">📊 Site usage</div>
+                <div id="drUsage"><p class="dr-sub">Loading…</p></div>
+            </div>
         </section>
     </main>
 
@@ -102,11 +107,14 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="disruptions.js"></script>
     <script src="ridership.js"></script>
+    <script src="usage.js"></script>
     <script src="app.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').catch(function (err) { console.log('SW registration failed:', err); });
         }
     </script>
+    <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
+    <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>

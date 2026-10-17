@@ -1,4 +1,4 @@
-const CACHE_NAME = 'jagamrt-v4';
+const CACHE_NAME = 'jagamrt-v5';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -6,6 +6,7 @@ const urlsToCache = [
   '/app.js',
   '/disruptions.js',
   '/ridership.js',
+  '/usage.js',
   '/manifest.json'
 ];
 
@@ -23,9 +24,14 @@ self.addEventListener('activate', (event) => {
 
 // Same-origin GETs: network first so app code and data stay fresh; cache is the offline fallback.
 // Cross-origin requests (map tiles, Leaflet) are left to the browser.
+// /api/* (live analytics) and /_vercel/* (the Insights beacon script, injected by Vercel at the edge,
+// plus its collector) are left alone too: they must never be served from cache or substituted with
+// index.html when offline, and the API route isn't part of the installable app shell.
 self.addEventListener('fetch', (event) => {
   const req = event.request;
-  if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
+  const url = new URL(req.url);
+  if (req.method !== 'GET' || url.origin !== self.location.origin) return;
+  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/_vercel/')) return;
   event.respondWith(
     fetch(req).then((res) => {
       if (res && res.status === 200) {
